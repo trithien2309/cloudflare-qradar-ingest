@@ -13,7 +13,7 @@ Collectors and deployment files for sending Cloudflare logs into IBM QRadar.
 Clone the repo on the QRadar server:
 
 ```bash
-git clone <REPO_URL>
+git clone https://github.com/trithien2309/cloudflare-qradar-ingest.git
 cd cloudflare-qradar-ingest
 ```
 
