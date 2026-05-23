@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Cloudflare DNS Analytics to QRadar every 15 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+AccuracySec=1min
+Unit=cloudflare-dns-analytics.service
+
+[Install]
+WantedBy=timers.target
+

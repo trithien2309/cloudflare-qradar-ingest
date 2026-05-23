@@ -1,0 +1,11 @@
+[Unit]
+Description=Cloudflare DNS Analytics to QRadar
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/cloudflare-qradar
+EnvironmentFile=/opt/cloudflare-qradar/cloudflare-qradar.env
+ExecStart=/usr/bin/python3 /opt/cloudflare-qradar/cloudflare_dns_analytics_to_qradar.py --minutes 15 --limit 50 --send-syslog --syslog-host ${QRADAR_SYSLOG_HOST} --syslog-port ${QRADAR_SYSLOG_PORT}
+

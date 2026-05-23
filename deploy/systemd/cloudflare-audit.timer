@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Cloudflare Audit Logs to QRadar every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=cloudflare-audit.service
+
+[Install]
+WantedBy=timers.target
+

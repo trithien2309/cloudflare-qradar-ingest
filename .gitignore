@@ -1,0 +1,7 @@
+*.ndjson
+cloudflare_audit_checkpoint.json
+*.tmp
+.env
+__pycache__/
+output/
+API DNS.py
