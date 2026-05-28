@@ -266,7 +266,7 @@ def parse_args():
     parser.add_argument("--syslog-format", choices=("leef", "json"), default="leef")
     parser.add_argument("--syslog-host", default="127.0.0.1")
     parser.add_argument("--syslog-port", type=int, default=514)
-    parser.add_argument("--syslog-hostname", default="cloudflare")
+    parser.add_argument("--syslog-hostname", default=os.getenv("QRADAR_SYSLOG_HOSTNAME", "cf-qradar-collector"))
     parser.add_argument("--syslog-app", default="CloudflareAudit")
     return parser.parse_args()
 

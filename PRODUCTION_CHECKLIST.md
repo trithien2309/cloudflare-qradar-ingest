@@ -15,7 +15,7 @@ Tao 2 log source trong QRadar.
 ### Cloudflare Audit
 
 - Log Source Name: `Cloudflare Audit`
-- Log Source Identifier: `cloudflare`
+- Log Source Identifier: `cf-qradar-collector`
 - Protocol: `Syslog`
 - Port: `514`
 - DSM: `Universal LEEF`
@@ -32,7 +32,7 @@ action_type
 ### Cloudflare DNS Analytics
 
 - Log Source Name: `Cloudflare DNS Analytics`
-- Log Source Identifier: `cloudflare`
+- Log Source Identifier: `cf-qradar-collector`
 - Protocol: `Syslog`
 - Port: `514`
 - DSM: `Universal LEEF`
@@ -72,6 +72,7 @@ CF_ZONE_ID="..."
 CF_API_TOKEN="..."
 QRADAR_SYSLOG_HOST="127.0.0.1"
 QRADAR_SYSLOG_PORT="514"
+QRADAR_SYSLOG_HOSTNAME="cf-qradar-collector"
 ```
 
 Bat lich chay:

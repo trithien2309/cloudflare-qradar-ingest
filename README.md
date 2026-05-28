@@ -37,6 +37,7 @@ CF_ZONE_ID="your_zone_id"
 CF_API_TOKEN="your_api_token"
 QRADAR_SYSLOG_HOST="127.0.0.1"
 QRADAR_SYSLOG_PORT="514"
+QRADAR_SYSLOG_HOSTNAME="cf-qradar-collector"
 ```
 
 Enable scheduled collection:
@@ -76,7 +77,7 @@ Suggested settings:
 - Protocol: `Syslog`
 - Port: `514`
 - DSM: `Universal LEEF`
-- Identifier: `cloudflare`
+- Identifier: `cf-qradar-collector`
 
 Search in Log Activity:
 
