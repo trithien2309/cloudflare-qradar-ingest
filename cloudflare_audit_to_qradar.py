@@ -81,7 +81,11 @@ def build_url(account_id, since, before, limit, cursor=None, direction="asc"):
     return f"{API_BASE}/accounts/{account_id}/logs/audit?{encoded}"
 
 
-def cloudflare_get_json(url, api_token, timeout):
+def should_retry_status(status):
+    return status in (408, 429, 500, 502, 503, 504)
+
+
+def cloudflare_get_json(url, api_token, timeout, retries, retry_delay):
     request = urllib.request.Request(
         url,
         headers={
@@ -91,26 +95,40 @@ def cloudflare_get_json(url, api_token, timeout):
         },
         method="GET",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            body = response.read().decode("utf-8", errors="replace")
-            return response.status, json.loads(body)
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
+    last_error = None
+    attempts = max(1, retries + 1)
+    for attempt in range(1, attempts + 1):
         try:
-            payload = json.loads(body)
-        except json.JSONDecodeError:
-            payload = {"success": False, "errors": [{"message": body}]}
-        return exc.code, payload
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                body = response.read().decode("utf-8", errors="replace")
+                return response.status, json.loads(body)
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            try:
+                payload = json.loads(body)
+            except json.JSONDecodeError:
+                payload = {"success": False, "errors": [{"message": body}]}
+            if not should_retry_status(exc.code) or attempt == attempts:
+                return exc.code, payload
+            last_error = f"HTTP {exc.code}"
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last_error = exc
+            if attempt == attempts:
+                raise
+
+        print(f"WARNING: Cloudflare request failed ({last_error}); retry {attempt}/{retries}", file=sys.stderr, flush=True)
+        time.sleep(retry_delay * attempt)
+
+    raise RuntimeError(f"Cloudflare request failed: {last_error}")
 
 
-def iter_audit_logs(account_id, api_token, since, before, page_limit, timeout, max_pages):
+def iter_audit_logs(account_id, api_token, since, before, page_limit, timeout, max_pages, retries, retry_delay):
     cursor = None
     pages = 0
     while True:
         pages += 1
         url = build_url(account_id, since, before, page_limit, cursor=cursor)
-        status, payload = cloudflare_get_json(url, api_token, timeout)
+        status, payload = cloudflare_get_json(url, api_token, timeout, retries, retry_delay)
         if status >= 400 or not payload.get("success"):
             raise RuntimeError(json.dumps(payload.get("errors", payload), ensure_ascii=False))
 
@@ -238,7 +256,9 @@ def parse_args():
     parser.add_argument("--limit", type=int, default=100, help="Cloudflare page size, max 1000")
     parser.add_argument("--max-pages", type=int, default=5)
     parser.add_argument("--max-events", type=int, default=0, help="Stop after this many events; 0 means no local cap")
-    parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--timeout", type=int, default=60)
+    parser.add_argument("--retries", type=int, default=3)
+    parser.add_argument("--retry-delay", type=int, default=10, help="Base seconds to wait between retries")
     parser.add_argument("--checkpoint-file", default=DEFAULT_CHECKPOINT_FILE)
     parser.add_argument("--no-checkpoint", action="store_true")
     parser.add_argument("--output-file", default="", help="Append normalized events as NDJSON")
@@ -271,13 +291,23 @@ def main():
         print("ERROR: since must be older than before.", file=sys.stderr)
         return 2
 
-    print(f"Pulling Cloudflare audit logs: since={to_rfc3339(since)} before={to_rfc3339(before)}")
+    print(f"Pulling Cloudflare audit logs: since={to_rfc3339(since)} before={to_rfc3339(before)}", flush=True)
 
     normalized_rows = []
     newest_time = None
     count = 0
     try:
-        for event in iter_audit_logs(args.account_id, args.api_token, since, before, args.limit, args.timeout, args.max_pages):
+        for event in iter_audit_logs(
+            args.account_id,
+            args.api_token,
+            since,
+            before,
+            args.limit,
+            args.timeout,
+            args.max_pages,
+            args.retries,
+            args.retry_delay,
+        ):
             normalized = normalize_event(event)
             normalized_rows.append(normalized)
             count += 1
@@ -310,7 +340,7 @@ def main():
         target.append(args.output_file)
     if not target:
         target.append("stdout")
-    print(f"Done. events={count} target={', '.join(target)}")
+    print(f"Done. events={count} target={', '.join(target)}", flush=True)
     return 0
 
 

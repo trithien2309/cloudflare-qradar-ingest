@@ -94,14 +94,32 @@ journalctl -u cloudflare-audit.service -n 50 --no-pager
 journalctl -u cloudflare-dns-analytics.service -n 50 --no-pager
 ```
 
-## 3. Luu y van hanh
+## 3. Cap nhat ban moi tren QRadar
+
+Neu repo da duoc clone tren QRadar:
+
+```bash
+cd /root/cloudflare-qradar-ingest
+git pull
+bash deploy/install_on_qradar.sh
+systemctl daemon-reload
+systemctl restart cloudflare-audit.timer cloudflare-dns-analytics.timer
+```
+
+Collector co retry mac dinh khi Cloudflare/DNS bi timeout tam thoi:
+
+```text
+--timeout 60 --retries 3 --retry-delay 10
+```
+
+## 4. Luu y van hanh
 
 - Audit dung checkpoint tai `/opt/cloudflare-qradar/state/cloudflare_audit_checkpoint.json`.
 - DNS Analytics la du lieu tong hop theo khoang thoi gian, khong phai raw per-query.
 - Nen rotate API token sau khi hoan tat.
 - Nen cap token toi thieu quyen can thiet, khong dung token full admin.
 
-## 4. Phan DNS raw con lai
+## 5. Phan DNS raw con lai
 
 Neu yeu cau du an la log tung query DNS voi field `Timestamp`, `SourceIP`,
 `QueryName`, `QueryType`, `ResponseCode`, can trien khai Cloudflare Logpush

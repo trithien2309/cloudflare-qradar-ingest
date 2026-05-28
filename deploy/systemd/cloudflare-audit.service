@@ -7,5 +7,4 @@ After=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/cloudflare-qradar
 EnvironmentFile=/opt/cloudflare-qradar/cloudflare-qradar.env
-ExecStart=/usr/bin/python3 /opt/cloudflare-qradar/cloudflare_audit_to_qradar.py --minutes 10 --send-syslog --syslog-host ${QRADAR_SYSLOG_HOST} --syslog-port ${QRADAR_SYSLOG_PORT} --checkpoint-file /opt/cloudflare-qradar/state/cloudflare_audit_checkpoint.json
-
+ExecStart=/usr/bin/python3 /opt/cloudflare-qradar/cloudflare_audit_to_qradar.py --minutes 30 --timeout 60 --retries 3 --retry-delay 10 --send-syslog --syslog-host ${QRADAR_SYSLOG_HOST} --syslog-port ${QRADAR_SYSLOG_PORT} --checkpoint-file /opt/cloudflare-qradar/state/cloudflare_audit_checkpoint.json

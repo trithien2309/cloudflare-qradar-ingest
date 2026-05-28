@@ -61,7 +61,7 @@ def to_rfc3339(value):
     return value.astimezone(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def cloudflare_graphql(api_token, zone_id, since, before, limit, timeout):
+def cloudflare_graphql(api_token, zone_id, since, before, limit, timeout, retries, retry_delay):
     payload = {
         "query": DNS_QUERY,
         "variables": {
@@ -83,12 +83,26 @@ def cloudflare_graphql(api_token, zone_id, since, before, limit, timeout):
         },
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8", errors="replace"))
-    except urllib.error.HTTPError as exc:
-        text = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {exc.code}: {text}") from exc
+    last_error = None
+    attempts = max(1, retries + 1)
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8", errors="replace"))
+        except urllib.error.HTTPError as exc:
+            text = exc.read().decode("utf-8", errors="replace")
+            if exc.code not in (408, 429, 500, 502, 503, 504) or attempt == attempts:
+                raise RuntimeError(f"HTTP {exc.code}: {text}") from exc
+            last_error = f"HTTP {exc.code}"
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last_error = exc
+            if attempt == attempts:
+                raise
+
+        print(f"WARNING: Cloudflare request failed ({last_error}); retry {attempt}/{retries}", file=sys.stderr, flush=True)
+        time.sleep(retry_delay * attempt)
+
+    raise RuntimeError(f"Cloudflare request failed: {last_error}")
 
 
 def normalize_rows(payload, zone_id, since, before):
@@ -173,7 +187,9 @@ def parse_args():
     parser.add_argument("--before", help="RFC3339 end time, default is now")
     parser.add_argument("--minutes", type=int, default=60)
     parser.add_argument("--limit", type=int, default=10)
-    parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--timeout", type=int, default=60)
+    parser.add_argument("--retries", type=int, default=3)
+    parser.add_argument("--retry-delay", type=int, default=10, help="Base seconds to wait between retries")
     parser.add_argument("--output-file", default="", help="Append normalized rows as NDJSON")
     parser.add_argument("--send-syslog", action="store_true")
     parser.add_argument("--syslog-format", choices=("leef", "json"), default="leef")
@@ -196,9 +212,18 @@ def main():
         print("ERROR: since must be older than before.", file=sys.stderr)
         return 2
 
-    print(f"Pulling Cloudflare DNS analytics: since={to_rfc3339(since)} before={to_rfc3339(before)}")
+    print(f"Pulling Cloudflare DNS analytics: since={to_rfc3339(since)} before={to_rfc3339(before)}", flush=True)
     try:
-        payload = cloudflare_graphql(args.api_token, args.zone_id, since, before, args.limit, args.timeout)
+        payload = cloudflare_graphql(
+            args.api_token,
+            args.zone_id,
+            since,
+            before,
+            args.limit,
+            args.timeout,
+            args.retries,
+            args.retry_delay,
+        )
         rows = normalize_rows(payload, args.zone_id, since, before)
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
@@ -220,7 +245,7 @@ def main():
         target.append(args.output_file)
     if not target:
         target.append("stdout")
-    print(f"Done. rows={len(rows)} target={', '.join(target)}")
+    print(f"Done. rows={len(rows)} target={', '.join(target)}", flush=True)
     return 0
 
 

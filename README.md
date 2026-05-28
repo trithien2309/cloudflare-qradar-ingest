@@ -54,6 +54,16 @@ journalctl -u cloudflare-audit.service -n 50 --no-pager
 journalctl -u cloudflare-dns-analytics.service -n 50 --no-pager
 ```
 
+## Update On QRadar
+
+```bash
+cd /root/cloudflare-qradar-ingest
+git pull
+bash deploy/install_on_qradar.sh
+systemctl daemon-reload
+systemctl restart cloudflare-audit.timer cloudflare-dns-analytics.timer
+```
+
 ## QRadar Log Sources
 
 Create two QRadar log sources:

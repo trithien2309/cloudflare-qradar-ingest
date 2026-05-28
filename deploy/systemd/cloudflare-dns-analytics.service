@@ -7,5 +7,4 @@ After=network-online.target
 Type=oneshot
 WorkingDirectory=/opt/cloudflare-qradar
 EnvironmentFile=/opt/cloudflare-qradar/cloudflare-qradar.env
-ExecStart=/usr/bin/python3 /opt/cloudflare-qradar/cloudflare_dns_analytics_to_qradar.py --minutes 15 --limit 50 --send-syslog --syslog-host ${QRADAR_SYSLOG_HOST} --syslog-port ${QRADAR_SYSLOG_PORT}
-
+ExecStart=/usr/bin/python3 /opt/cloudflare-qradar/cloudflare_dns_analytics_to_qradar.py --minutes 30 --limit 50 --timeout 60 --retries 3 --retry-delay 10 --send-syslog --syslog-host ${QRADAR_SYSLOG_HOST} --syslog-port ${QRADAR_SYSLOG_PORT}
