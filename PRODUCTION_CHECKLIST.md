@@ -73,6 +73,7 @@ CF_API_TOKEN="..."
 QRADAR_SYSLOG_HOST="127.0.0.1"
 QRADAR_SYSLOG_PORT="514"
 QRADAR_SYSLOG_HOSTNAME="cf-qradar-collector"
+QRADAR_SYSLOG_FORMAT="json"
 ```
 
 Bat lich chay:
