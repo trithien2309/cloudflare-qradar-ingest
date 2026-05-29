@@ -49,12 +49,20 @@ def utc_now():
 
 
 def parse_rfc3339(value):
-    if value.endswith("Z"):
-        value = value[:-1] + "+00:00"
-    parsed = dt.datetime.fromisoformat(value)
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=dt.timezone.utc)
-    return parsed.astimezone(dt.timezone.utc)
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+0000"
+    elif len(text) >= 6 and text[-6] in ("+", "-") and text[-3] == ":":
+        text = text[:-3] + text[-2:]
+    elif text[-5:-4] not in ("+", "-"):
+        text = text + "+0000"
+
+    for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"):
+        try:
+            return dt.datetime.strptime(text, fmt).astimezone(dt.timezone.utc)
+        except ValueError:
+            pass
+    raise ValueError("invalid RFC3339 timestamp: {0}".format(value))
 
 
 def to_rfc3339(value):
