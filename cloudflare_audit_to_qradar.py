@@ -263,7 +263,7 @@ def parse_args():
     parser.add_argument("--no-checkpoint", action="store_true")
     parser.add_argument("--output-file", default="", help="Append normalized events as NDJSON")
     parser.add_argument("--send-syslog", action="store_true")
-    parser.add_argument("--syslog-format", choices=("leef", "json"), default="leef")
+    parser.add_argument("--syslog-format", choices=("leef", "json"), default=os.getenv("QRADAR_SYSLOG_FORMAT", "leef"))
     parser.add_argument("--syslog-host", default="127.0.0.1")
     parser.add_argument("--syslog-port", type=int, default=514)
     parser.add_argument("--syslog-hostname", default=os.getenv("QRADAR_SYSLOG_HOSTNAME", "cf-qradar-collector"))
